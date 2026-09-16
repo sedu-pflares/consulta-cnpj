@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Consulta e Coleta CNPJ</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#111821;color:#fff;font-family:Arial,Helvetica,sans-serif;min-height:100vh}
+.wrap{width:min(1100px,94%);margin:30px auto}
+.card{background:#1a222e;border:1px solid #2c3948;border-radius:14px;box-shadow:0 12px 35px #0006;overflow:hidden}
+.header{display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid #303b49;background:#17202b}
+.header img{width:44px;height:44px;object-fit:contain;border-radius:8px}
+h1{font-size:21px;margin:0;color:#5bc0de}
+h1 small{font-size:11px;color:#9ba8b5}
+.content{padding:22px}
+label{display:block;margin:0 0 6px;font-size:14px;font-weight:bold}
+input,textarea{width:100%;background:#0e151d;border:1px solid #344352;color:#fff;padding:11px 12px;border-radius:7px;outline:none;margin-bottom:12px}
+input:focus,textarea:focus{border-color:#5bc0de}
+textarea{resize:vertical;min-height:180px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+button{border:0;border-radius:7px;padding:12px 14px;font-weight:bold;cursor:pointer;color:#fff;background:#1677a8}
+button:hover{filter:brightness(1.1)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 14px}
+.btns button{flex:1;min-width:150px}
+.pause{background:#b8860b}.clear{background:#6c757d}.download{background:#198754}.exit{background:#a83232}
+.status{background:#155724;border-radius:7px;padding:10px 12px;font-size:13px;margin-bottom:15px}
+.status.warn{background:#664d03}.status.err{background:#842029}
+.info{font-size:13px;color:#b9c3cc;margin-bottom:12px}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.stat{background:#111821;border:1px solid #303c49;border-radius:8px;padding:10px 14px;min-width:140px}
+.stat b{display:block;font-size:18px;color:#5bc0de}
+#secaoLogin{max-width:430px;margin:20px auto}
+.loginbox{padding:28px}
+.loginmsg{min-height:20px;font-size:13px;color:#ff8080;margin-top:4px}
+#secaoPainel{display:none}
+.tablewrap{margin-top:18px;overflow:auto;border:1px solid #303c49;border-radius:8px}
+table{width:100%;border-collapse:collapse;min-width:1100px;font-size:12px}
+th,td{padding:9px;border-bottom:1px solid #2d3946;text-align:left;vertical-align:top}
+th{background:#202c39;position:sticky;top:0}
+.empty{text-align:center;color:#8996a3;padding:25px}
+.progress{height:8px;background:#0d1319;border-radius:20px;overflow:hidden;margin:10px 0}
+.bar{height:100%;width:0;background:#20a7d7;transition:width .2s}
+.hint{font-size:11px;color:#8996a3;margin-top:5px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.wrap{width:98%;margin:10px auto}.content{padding:14px}.header{padding:14px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="card">
+
+<div class="header">
+<img src="https://i.postimg.cc/rpgbqhf5/Whats-App-Image-2026-04-22-at-08-27-49-removebg-preview.png" alt="Logo">
+<h1>Consulta e Coleta CNPJ <small>v2027.5 UltraFast</small></h1>
+</div>
+
+<section id="secaoLogin">
+<div class="loginbox">
+<h2 style="margin-top:0">🔐 Acesso</h2>
+<label>Usuário</label>
+<input id="inputUsuario" autocomplete="username" placeholder="Digite seu usuário">
+<label>Senha</label>
+<input id="inputSenha" type="password" autocomplete="current-password" placeholder="Digite sua senha">
+<button id="btnLogin" style="width:100%">🔐 ENTRAR</button>
+<div id="msgLogin" class="loginmsg"></div>
+<div class="hint">Acesso local do sistema. As consultas utilizam chamadas otimizadas.</div>
+</div>
+</section>
+
+<section id="secaoPainel">
+<div class="content">
+<div class="info">Usuário: <b>ADMIN</b></div>
+<div id="statusBox" class="status">✓ Acesso validado</div>
+
+<div class="grid">
+<div>
+<label>Delay / Tempo entre consultas (segundos)</label>
+<input type="number" id="delay" value="0" min="0" max="300">
+</div>
+<div>
+<label>Tempo máximo por tentativa (Timeout)</label>
+<input value="3 segundos (Rápido)" disabled>
+</div>
+</div>
+
+<label>Lista de CPF/CNPJ — um por linha</label>
+<textarea id="list" placeholder="Exemplo:
+191
+00000000000191
+12345678000195"></textarea>
+
+<div class="btns">
+<button id="btn-start">▶ INICIAR AUTOMAÇÃO</button>
+<button id="btn-pause" class="pause">⏸ PAUSAR</button>
+<button id="btn-clear" class="clear">🗑 LIMPAR</button>
+<button id="btn-download" class="download">📥 BAIXAR EXCEL/CSV</button>
+<button id="btn-exit" class="exit">🚪 SAIR</button>
+</div>
+
+<div class="progress"><div id="bar" class="bar"></div></div>
+<div class="stats">
+<div class="stat">Restantes<b id="processed">0 / 0</b></div>
+<div class="stat">Resultados<b id="count">0</b></div>
+<div class="stat">Erros<b id="errors">0</b></div>
+</div>
+<div id="log-status" class="status">Aguardando início...</div>
+
+<div class="tablewrap">
+<table>
+<thead><tr>
+<th>CNPJ</th><th>Razão Social</th><th>Nome Fantasia</th><th>Situação</th><th>Abertura</th>
+<th>Telefone</th><th>Email</th><th>CEP</th><th>Logradouro</th><th>Número</th>
+<th>Bairro</th><th>Município</th><th>UF</th><th>QSA (Sócios)</th>
+</tr></thead>
+<tbody id="tbody"><tr><td colspan="14" class="empty">Nenhum resultado.</td></tr></tbody>
+</table>
+</div>
+</div>
+</section>
+
+</div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+const KITANA_BASE = 'https://kitana.opencnpj.com/cnpj/';
+const BRASILAPI_BASE = 'https://brasilapi.com.br/api/cnpj/v1/';
+const CNPJA_BASE = 'https://open.cnpja.com/office/';
+
+const LOGIN_USER = 'ADMIN';
+const LOGIN_PASS = 'ADMIN123';
+const KEY = 'cnpj_html_v1';
+
+let state = JSON.parse(localStorage.getItem(KEY) || '{}');
+state.results = Array.isArray(state.results) ? state.results : [];
+state.list = state.list || '';
+state.totalInitial = Number(state.totalInitial || 0);
+state.errors = Array.isArray(state.errors) ? state.errors : [];
+let running = false;
+let pauseRequested = false;
+
+const $ = id => document.getElementById(id);
+
+function save(){
+  localStorage.setItem(KEY, JSON.stringify({
+    results: state.results,
+    list: $('list')?.value || state.list,
+    totalInitial: state.totalInitial,
+    errors: state.errors
+  }));
+}
+
+function setStatus(text, type=''){
+  const el=$('log-status');
+  el.textContent=text;
+  el.className='status'+(type?' '+type:'');
+}
+
+function normalize(v){
+  const n=String(v||'').replace(/\D/g,'');
+  return n.padStart(14,'0').slice(-14);
+}
+
+function extractQsa(d){
+  const list=d?.qsa || d?.socios || d?.qsa_socios ||
+    d?.estabelecimento?.qsa || d?.empresa?.qsa || d?.members || [];
+  if(!Array.isArray(list)||!list.length) return 'Não informado / Sem QSA na API';
+  return list.map(s=>{
+    const nome=s.nome||s.nome_socio||s.razaoSocial||s.nome_do_socio||s.person?.name||'';
+    const q=s.qualificacao||s.qualificacao_socio||s.descricaoQualificacao||s.role?.text||'';
+    return q ? `${nome} (${q})` : nome;
+  }).filter(Boolean).join('; ') || 'Não informado / Sem QSA na API';
+}
+
+function extractData(json, cnpj){
+  const d=json?.data||json?.resultado||json?.empresa||json?.estabelecimento||
+    (json?.success!==false ? json : null);
+  if(!d || typeof d!=='object') return null;
+  return {
+    cnpj:d.cnpj||d.cnpj_basico||cnpj,
+    razaoSocial:d.razaoSocial||d.razao_social||d.nome||'',
+    nomeFantasia:d.nomeFantasia||d.nome_fantasia||'',
+    situacao:d.situacaoCadastral||d.descricao_situacao_cadastral||d.situacao||'',
+    abertura:d.dataInicioAtividades||d.data_inicio_atividade||d.data_abertura||'',
+    telefone:d.telefone||d.ddd_telefone_1||'',
+    email:d.email||'',
+    cep:d.cep||'',
+    logradouro:d.logradouro||'',
+    numero:d.numero||'',
+    bairro:d.bairro||'',
+    municipio:d.municipio||'',
+    uf:d.uf||'',
+    qsa:extractQsa(d)
+  };
+}
+
+function extractBrasilApi(json,cnpj){
+  if(!json||typeof json!=='object') return null;
+  if(json.message && !json.razao_social && !json.cnpj) return null;
+  return {
+    cnpj:json.cnpj||cnpj,
+    razaoSocial:json.razao_social||json.razaoSocial||json.nome||'',
+    nomeFantasia:json.nome_fantasia||json.nomeFantasia||'',
+    situacao:json.descricao_situacao_cadastral||json.situacao_cadastral||json.situacao||'',
+    abertura:json.data_inicio_atividade||json.dataInicioAtividades||json.data_abertura||'',
+    telefone:json.ddd_telefone_1||json.telefone||'',
+    email:json.email||'',
+    cep:json.cep||'',
+    logradouro:json.logradouro||'',
+    numero:json.numero||'',
+    bairro:json.bairro||'',
+    municipio:json.municipio||'',
+    uf:json.uf||'',
+    qsa:extractQsa(json)
+  };
+}
+
+function extractCnpja(json, cnpj){
+  if(!json || typeof json !== 'object' || !json.company) return null;
+  const comp = json.company || {};
+  const addr = json.address || {};
+  const phone = Array.isArray(json.phones) && json.phones[0] ? `${json.phones[0].area||''}${json.phones[0].number||''}` : '';
+  const email = Array.isArray(json.emails) && json.emails[0] ? json.emails[0].address : '';
+  return {
+    cnpj: json.taxId || cnpj,
+    razaoSocial: comp.name || '',
+    nomeFantasia: json.alias || '',
+    situacao: json.status?.text || '',
+    abertura: json.founded || '',
+    telefone: phone,
+    email: email,
+    cep: addr.zip || '',
+    logradouro: addr.street || '',
+    numero: addr.number || '',
+    bairro: addr.district || '',
+    municipio: addr.city || '',
+    uf: addr.state || '',
+    qsa: extractQsa(comp)
+  };
+}
+
+async function sleep(ms){
+  return new Promise(r=>setTimeout(r,ms));
+}
+
+async function fetchJson(url){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(), 3000); // Reduzido para 3 segundos para acelerar o processo
+  try{
+    const res=await fetch(url,{method:'GET',cache:'no-store',signal:controller.signal,headers:{'Accept':'application/json,text/plain,*/*'}});
+    const text=(await res.text()).replace(/^\uFEFF/,'').trim();
+    let json=null;
+    try{json=JSON.parse(text)}catch(e){
+      const a=text.indexOf('{'),b=text.lastIndexOf('}');
+      if(a>=0&&b>a) json=JSON.parse(text.slice(a,b+1));
+    }
+    return {status:res.status,json,text};
+  }finally{clearTimeout(timer)}
+}
+
+async function consultarFonte(url, cnpj, extrator){
+  try{
+    const r=await fetchJson(url);
+    if(r.status>=200&&r.status<300){
+      const data=extrator(r.json,cnpj);
+      if(data) return {ok:true,data};
+    }
+    return {ok:false,erro:`HTTP ${r.status||0}`};
+  }catch(e){
+    return {ok:false,erro:e?.name==='AbortError'?'Timeout (3s)':(e?.message||'Erro')};
+  }
+}
+
+async function fetchFast(cnpj){
+  const fontes=[
+    {nome:'Kitana', url:KITANA_BASE+encodeURIComponent(cnpj), fn:(j,c)=>extractData(j,c)},
+    {nome:'BrasilAPI', url:BRASILAPI_BASE+encodeURIComponent(cnpj), fn:extractBrasilApi},
+    {nome:'CNPJá', url:CNPJA_BASE+encodeURIComponent(cnpj), fn:extractCnpja}
+  ];
+  let erros=[];
+  for(const fonte of fontes){
+    if(pauseRequested) return {ok:false,paused:true,erro:'Pausado.'};
+    setStatus(`🔎 ${cnpj}: tentando ${fonte.nome}...`);
+    const r=await consultarFonte(fonte.url,cnpj,fonte.fn);
+    if(r.ok) return r;
+    erros.push(`${fonte.nome}: ${r.erro}`);
+  }
+  return {ok:false,erro:erros.join(' | ')};
+}
+
+function render(){
+  $('list').value=state.list||'';
+  $('count').textContent=state.results.length;
+  $('errors').textContent=state.errors.length;
+  renderTable();
+}
+
+function renderTable(){
+  const tb=$('tbody');
+  if(!state.results.length){
+    tb.innerHTML='<tr><td colspan="14" class="empty">Nenhum resultado.</td></tr>';
+    return;
+  }
+  tb.innerHTML=state.results.map(x=>`<tr>
+<td>${esc(x.cnpj)}</td><td>${esc(x.razaoSocial)}</td><td>${esc(x.nomeFantasia)}</td>
+<td>${esc(x.situacao)}</td><td>${esc(x.abertura)}</td><td>${esc(x.telefone)}</td>
+<td>${esc(x.email)}</td><td>${esc(x.cep)}</td><td>${esc(x.logradouro)}</td>
+<td>${esc(x.numero)}</td><td>${esc(x.bairro)}</td><td>${esc(x.municipio)}</td>
+<td>${esc(x.uf)}</td><td>${esc(x.qsa)}</td></tr>`).join('');
+}
+
+function esc(v){
+  return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function updateStats(remaining, total){
+  $('processed').textContent=`${remaining} / ${total}`;
+  const pct = total > 0 ? Math.min(100, ((total - remaining) / total) * 100) : 0;
+  $('bar').style.width = `${pct}%`;
+  $('count').textContent=state.results.length;
+  $('errors').textContent=state.errors.length;
+}
+
+// Remove o CNPJ recém-consultado da caixa de texto
+function removeCnpjFromTextarea(cnpjTarget){
+  const lines = $('list').value.split(/\r?\n/);
+  const remainingLines = lines.filter(line => normalize(line) !== cnpjTarget);
+  const newText = remainingLines.join('\n');
+  $('list').value = newText;
+  state.list = newText;
+  return remainingLines.map(normalize).filter(x => x.length === 14);
+}
+
+async function start(){
+  if(running)return;
+  
+  let validCnpjs = $('list').value.split(/\r?\n/).map(normalize).filter(x=>x.length===14);
+  if(!validCnpjs.length){setStatus('⚠ Nenhum CNPJ válido na caixa de texto.','warn');return;}
+
+  if(!state.totalInitial || validCnpjs.length > state.totalInitial){
+    state.totalInitial = validCnpjs.length;
+  }
+
+  const delay=Math.max(0, Number($('delay').value) || 0);
+  running=true;
+  pauseRequested=false;
+
+  setStatus(`▶ Processando lista... (${validCnpjs.length} restantes)`);
+  updateStats(validCnpjs.length, state.totalInitial);
+
+  while(validCnpjs.length > 0 && !pauseRequested){
+    const cnpj = validCnpjs[0];
+
+    const r = await fetchFast(cnpj);
+
+    if(r.ok){
+      if(!state.results.some(x=>normalize(x.cnpj)===cnpj)) state.results.push(r.data);
+      setStatus(`✅ ${cnpj} OK! Removendo da lista...`);
+    }else{
+      if(r.paused) break;
+      state.errors.push({cnpj,erro:r.erro,data:new Date().toISOString()});
+      setStatus(`⚠ ${cnpj} falhou. Removendo da lista...`,'warn');
+    }
+
+    // Exclui da lista na tela e atualiza a contagem regressiva
+    validCnpjs = removeCnpjFromTextarea(cnpj);
+    save();
+    renderTable();
+    updateStats(validCnpjs.length, state.totalInitial);
+
+    if(validCnpjs.length > 0 && !pauseRequested && delay > 0){
+      const end=Date.now()+delay*1000;
+      while(Date.now()<end){
+        if(pauseRequested)break;
+        await sleep(150);
+      }
+    }
+  }
+
+  running=false;
+  if(pauseRequested){
+    setStatus(`⏸ Automação pausada. Restam ${validCnpjs.length} CNPJs na lista.`,'warn');
+  }else if(validCnpjs.length === 0){
+    state.totalInitial = 0;
+    setStatus('✅ Processo concluído! Todos os CNPJs foram consultados.');
+  }
+  save();
+}
+
+function pause(){
+  if(!running){setStatus('⏸ Automação não está rodando.','warn');return;}
+  pauseRequested=true;
+  setStatus('⏸ Solicitando pausa...','warn');
+}
+
+function clearAll(){
+  if(!confirm('Deseja limpar a lista, resultados e erros?'))return;
+  pauseRequested=true;
+  state={results:[],list:'',totalInitial:0,errors:[]};
+  save();render();updateStats(0,0);setStatus('Dados limpos.');
+}
+
+function download(){
+  if(!state.results.length){alert('Nenhum resultado disponível para baixar.');return;}
+  const headers=['CNPJ','Razao Social','Nome Fantasia','Situacao','Abertura','Telefone','Email','CEP','Logradouro','Numero','Bairro','Municipio','UF','QSA (Socios)'];
+  let csv='\uFEFF'+headers.join(';')+'\n';
+  state.results.forEach(x=>{
+    const vals=[x.cnpj,x.razaoSocial,x.nomeFantasia,x.situacao,x.abertura,x.telefone,x.email,x.cep,x.logradouro,x.numero,x.bairro,x.municipio,x.uf,x.qsa];
+    csv+=vals.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';')+'\n';
+  });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`consulta_cnpj_massa_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+function login(){
+  const u=$('inputUsuario').value.trim().toUpperCase();
+  const p=$('inputSenha').value;
+  if(u===LOGIN_USER&&p===LOGIN_PASS){
+    sessionStorage.setItem('cnpj_admin_ok','1');
+    $('secaoLogin').style.display='none';
+    $('secaoPainel').style.display='block';
+    render();
+    const remaining = (state.list||'').split(/\r?\n/).map(normalize).filter(x=>x.length===14).length;
+    updateStats(remaining, Math.max(state.totalInitial, remaining));
+  }else $('msgLogin').textContent='Usuário ou senha inválidos.';
+}
+
+function logout(){
+  pauseRequested=true;running=false;
+  sessionStorage.removeItem('cnpj_admin_ok');
+  $('secaoPainel').style.display='none';
+  $('secaoLogin').style.display='block';
+  $('inputSenha').value='';
+}
+
+$('btnLogin').onclick=login;
+$('inputSenha').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
+$('btn-start').onclick=start;
+$('btn-pause').onclick=pause;
+$('btn-clear').onclick=clearAll;
+$('btn-download').onclick=download;
+$('btn-exit').onclick=logout;
+$('list').addEventListener('input',()=>{
+  state.list=$('list').value;
+  const rem = state.list.split(/\r?\n/).map(normalize).filter(x=>x.length===14).length;
+  state.totalInitial = rem;
+  updateStats(rem, rem);
+  save();
+});
+
+if(sessionStorage.getItem('cnpj_admin_ok')==='1'){
+  $('secaoLogin').style.display='none';
+  $('secaoPainel').style.display='block';
+  render();
+  const rem = (state.list||'').split(/\r?\n/).map(normalize).filter(x=>x.length===14).length;
+  updateStats(rem, Math.max(state.totalInitial, rem));
+}else{
+  $('inputUsuario').focus();
+}
+})();
+</script>
+</body>
+</html>
